@@ -1,11 +1,11 @@
-import { Repository, SelectQueryBuilder } from "typeorm";
+import { Repository } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import { RequestEntity } from "../entities/Request";
-import { RequestStatus, RequestType } from "../constants/enums";
+import { RequestStatus } from "../constants/enums";
 
 interface RequestFilters {
   status?: RequestStatus;
-  type?: RequestType;
+  serviceId?: number;
   city?: string;
   search?: string;
 }
@@ -25,41 +25,31 @@ export class RequestRepository {
     return this.repository.save(request);
   }
 
+  async updateById(requestId: number, data: Partial<RequestEntity>): Promise<void> {
+    await this.repository.update({ id: requestId }, data);
+  }
+
   remove(request: RequestEntity): Promise<RequestEntity> {
     return this.repository.remove(request);
+  }
+
+  async delete(requestId: number): Promise<void> {
+    await this.repository.delete({ id: requestId });
   }
 
   findById(id: number): Promise<RequestEntity | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ["user", "damageReports", "media"]
+      relations: [
+        "user",
+        "service",
+        "assignedReviewer",
+        "data",
+        "data.field",
+        "notes",
+        "media"
+      ]
     });
-  }
-
-  private applyFilters(
-    qb: SelectQueryBuilder<RequestEntity>,
-    filters: RequestFilters
-  ): SelectQueryBuilder<RequestEntity> {
-    if (filters.status) {
-      qb.andWhere("request.status = :status", { status: filters.status });
-    }
-
-    if (filters.type) {
-      qb.andWhere("request.reqType = :reqType", { reqType: filters.type });
-    }
-
-    if (filters.city) {
-      qb.andWhere("user.city = :city", { city: filters.city });
-    }
-
-    if (filters.search) {
-      qb.andWhere(
-        "(request.description LIKE :search OR request.buildingNumber LIKE :search OR user.name LIKE :search)",
-        { search: `%${filters.search}%` }
-      );
-    }
-
-    return qb;
   }
 
   async findAllPaginated(
@@ -70,13 +60,35 @@ export class RequestRepository {
     const qb = this.repository
       .createQueryBuilder("request")
       .leftJoinAndSelect("request.user", "user")
-      .leftJoinAndSelect("request.damageReports", "damageReports")
+      .leftJoinAndSelect("request.service", "service")
+      .leftJoinAndSelect("request.assignedReviewer", "assignedReviewer")
+      .leftJoinAndSelect("request.notes", "notes")
+      .leftJoinAndSelect("request.data", "data")
+      .leftJoinAndSelect("data.field", "field")
       .leftJoinAndSelect("request.media", "media")
-      .orderBy("request.reqDate", "DESC")
+      .orderBy("request.id", "DESC")
       .skip((page - 1) * limit)
-      .take(limit);
+      .take(limit)
+      .distinct(true);
 
-    this.applyFilters(qb, filters);
+    if (filters.status) {
+      qb.andWhere("request.status = :status", { status: filters.status });
+    }
+
+    if (filters.serviceId) {
+      qb.andWhere("request.serviceId = :serviceId", { serviceId: filters.serviceId });
+    }
+
+    if (filters.city) {
+      qb.andWhere("user.city = :city", { city: filters.city });
+    }
+
+    if (filters.search) {
+      qb.andWhere(
+        "(user.name LIKE :search OR service.name LIKE :search)",
+        { search: `%${filters.search}%` }
+      );
+    }
 
     return qb.getManyAndCount();
   }
@@ -87,17 +99,80 @@ export class RequestRepository {
     limit: number,
     filters: RequestFilters
   ): Promise<[RequestEntity[], number]> {
+    const where: {
+      userId: number;
+      status?: RequestStatus;
+      serviceId?: number;
+    } = { userId };
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.serviceId) {
+      where.serviceId = filters.serviceId;
+    }
+
+    return this.repository.findAndCount({
+      where,
+      relations: [
+        "user",
+        "service",
+        "assignedReviewer",
+        "data",
+        "data.field",
+        "notes",
+        "media"
+      ],
+      order: { id: "DESC" },
+      skip: (page - 1) * limit,
+      take: limit
+    });
+  }
+
+  async findReviewerPaginated(
+    reviewerId: number,
+    page: number,
+    limit: number,
+    filters: RequestFilters,
+    mode: "assigned" | "all"
+  ): Promise<[RequestEntity[], number]> {
     const qb = this.repository
       .createQueryBuilder("request")
       .leftJoinAndSelect("request.user", "user")
-      .leftJoinAndSelect("request.damageReports", "damageReports")
+      .leftJoinAndSelect("request.service", "service")
+      .leftJoinAndSelect("request.assignedReviewer", "assignedReviewer")
+      .leftJoinAndSelect("request.notes", "notes")
+      .leftJoinAndSelect("request.data", "data")
+      .leftJoinAndSelect("data.field", "field")
       .leftJoinAndSelect("request.media", "media")
-      .where("request.userId = :userId", { userId })
-      .orderBy("request.reqDate", "DESC")
+      .orderBy("request.id", "DESC")
       .skip((page - 1) * limit)
-      .take(limit);
+      .take(limit)
+      .distinct(true);
 
-    this.applyFilters(qb, filters);
+    if (mode === "assigned") {
+      qb.andWhere("request.assignedReviewerId = :reviewerId", { reviewerId });
+    }
+
+    if (filters.status) {
+      qb.andWhere("request.status = :status", { status: filters.status });
+    }
+
+    if (filters.serviceId) {
+      qb.andWhere("request.serviceId = :serviceId", { serviceId: filters.serviceId });
+    }
+
+    if (filters.city) {
+      qb.andWhere("user.city = :city", { city: filters.city });
+    }
+
+    if (filters.search) {
+      qb.andWhere(
+        "(user.name LIKE :search OR service.name LIKE :search)",
+        { search: `%${filters.search}%` }
+      );
+    }
 
     return qb.getManyAndCount();
   }

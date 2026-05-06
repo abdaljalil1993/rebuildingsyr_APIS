@@ -4,10 +4,9 @@ import {
   deleteRequest,
   getMyRequestById,
   listMyRequests,
-  updateRequest,
-  uploadDocument
+  updateRequest
 } from "../controllers/request.controller";
-import { AccountType } from "../constants/enums";
+import { UserRole } from "../constants/enums";
 import {
   CreateRequestDto,
   ListRequestsQueryDto,
@@ -15,7 +14,6 @@ import {
 } from "../dtos/request.dto";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/role.middleware";
-import { upload } from "../middlewares/upload.middleware";
 import {
   validateDto,
   validateQueryDto
@@ -23,13 +21,12 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, authorizeRoles(AccountType.USER));
+router.use(authMiddleware, authorizeRoles(UserRole.USER));
 
 router.post("/", validateDto(CreateRequestDto), createRequest);
-router.get("/", validateQueryDto(ListRequestsQueryDto), listMyRequests);
+router.get("/my", validateQueryDto(ListRequestsQueryDto), listMyRequests);
 router.get("/:id", getMyRequestById);
 router.patch("/:id", validateDto(UpdateRequestDto), updateRequest);
 router.delete("/:id", deleteRequest);
-router.post("/:id/documents", upload.single("document"), uploadDocument);
 
 export default router;

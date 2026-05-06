@@ -1,4 +1,4 @@
-import { AccountType } from "../constants/enums";
+import { UserRole } from "../constants/enums";
 import { LoginDto, RegisterDto } from "../dtos/auth.dto";
 import { User } from "../entities/User";
 import { UserRepository } from "../repositories/user.repository";
@@ -19,30 +19,26 @@ export class AuthService {
   }
 
   async register(payload: RegisterDto) {
-    const [existingEmail, existingUsername] = await Promise.all([
-      this.userRepository.findByEmail(payload.email),
-      this.userRepository.findByUsername(payload.username)
-    ]);
+    const existingEmail = await this.userRepository.findByEmail(payload.email);
 
     if (existingEmail) {
       throw new ApiError(409, "Email is already in use");
     }
 
-    if (existingUsername) {
-      throw new ApiError(409, "Username is already in use");
-    }
-
     const hashedPassword = await hashPassword(payload.password);
     const user = this.userRepository.create({
-      ...payload,
-      accountType: AccountType.USER,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      city: payload.city,
+      role: UserRole.USER,
       password: hashedPassword
     });
 
     const savedUser = await this.userRepository.save(user);
     const token = signToken({
       id: savedUser.id,
-      accountType: savedUser.accountType
+      role: savedUser.role
     });
 
     return {
@@ -52,7 +48,7 @@ export class AuthService {
   }
 
   async login(payload: LoginDto) {
-    const user = await this.userRepository.findByIdentifier(payload.identifier);
+    const user = await this.userRepository.findForLogin(payload.email);
 
     if (!user) {
       throw new ApiError(401, "Invalid credentials");
@@ -66,7 +62,7 @@ export class AuthService {
 
     const token = signToken({
       id: user.id,
-      accountType: user.accountType
+      role: user.role
     });
 
     return {

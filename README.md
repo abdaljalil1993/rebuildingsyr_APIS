@@ -1,6 +1,22 @@
-# Rebuildings Project API
+# Citizen Assistance API
 
-Production-grade RESTful API for managing reconstruction and aid requests for war-damaged houses.
+Production-grade RESTful API for a citizen assistance platform with 3 roles:
+
+- USER
+- REVIEWER
+- ADMIN
+
+Built with Node.js, Express.js, TypeScript, TypeORM, and MySQL2.
+
+## Architecture
+
+The project follows a clean modular architecture:
+
+- controllers: HTTP layer only
+- services: business rules and workflow logic
+- repositories: database access through TypeORM repositories
+- entities: normalized database schema with relations
+- middlewares: auth, role guard, validation, and error handling
 
 ## Tech Stack
 
@@ -9,27 +25,10 @@ Production-grade RESTful API for managing reconstruction and aid requests for wa
 - TypeScript
 - TypeORM
 - MySQL2
-- class-validator
+- class-validator + class-transformer
 - JWT + bcrypt
 
-## Folder Structure
-
-```text
-src/
-  config/
-  constants/
-  controllers/
-  dtos/
-  entities/
-  middlewares/
-  repositories/
-  routes/
-  services/
-  types/
-  utils/
-```
-
-## Setup
+## Quick Start
 
 1. Install dependencies:
 
@@ -37,117 +36,84 @@ src/
 npm install
 ```
 
-2. Create `.env` from `.env.example` and fill database + JWT values.
+2. Create .env from .env.example.
 
-3. Build and run:
+3. Start development server:
 
 ```bash
 npm run dev
 ```
 
-## Core Features
+4. Build for production:
 
-- Authentication and role authorization (USER / ADMIN)
-- User profile management
-- Request submission/edit/delete/tracking
-- Document upload for requests
-- Admin request listing with filters and search
-- Admin request review and status updates
-- Admin statistics
-- Pagination support
-- Global error handling
-
-## API Base URL
-
-`/api/v1`
-
-## Postman-Ready Endpoints
-
-### Health
-- `GET /health`
-
-### Auth
-- `POST /auth/register`
-- `POST /auth/login`
-- `POST /auth/logout` (Auth)
-
-### User (USER role)
-- `GET /users/me`
-- `PATCH /users/me`
-
-### Requests (USER role)
-- `POST /requests`
-- `GET /requests?page=1&limit=10&status=PENDING&type=AID&search=text`
-- `GET /requests/:id`
-- `PATCH /requests/:id`
-- `DELETE /requests/:id`
-- `POST /requests/:id/documents` (form-data, key: `document`)
-
-### Admin (ADMIN role)
-- `GET /admin/requests?page=1&limit=10&status=PENDING&type=RECONSTRUCTION&city=Gaza&search=text`
-- `PATCH /admin/requests/:id/status`
-- `POST /admin/requests/:id/review`
-- `GET /admin/statistics`
-
-## Example Payloads
-
-### Register
-
-```json
-{
-  "name": "User One",
-  "phone": "0599999999",
-  "email": "user@example.com",
-  "username": "userone",
-  "password": "StrongPass123",
-  "nationalId": "123456789",
-  "city": "Gaza",
-  "socialStatus": "Married",
-  "familyMembersNumber": 5
-}
+```bash
+npm run build
+npm start
 ```
 
-### Login
+## Environment
 
-```json
-{
-  "identifier": "user@example.com",
-  "password": "StrongPass123"
-}
-```
+This project uses TypeORM synchronize mode (development only), no migrations.
 
-### Create Request
+Important variables:
 
-```json
-{
-  "reqType": "RECONSTRUCTION",
-  "reqDate": "2026-03-29T10:00:00.000Z",
-  "description": "Severe structural damage to roof and walls",
-  "withDocs": false,
-  "buildingNumber": "B-1022"
-}
-```
+- DB_HOST
+- DB_PORT
+- DB_USER
+- DB_PASSWORD
+- DB_NAME
+- DB_SYNCHRONIZE=true
+- JWT_SECRET
+- JWT_EXPIRES_IN
+- SEED_ON_START=true
 
-### Update Request Status (Admin)
+## Request Workflow
 
-```json
-{
-  "status": "UNDER_REVIEW"
-}
-```
+1. USER chooses a service.
+2. USER submits a request with dynamic request data.
+3. REVIEWER reviews request, adds notes, updates status.
+4. Request ends in APPROVED, REJECTED, or NEEDS_INFO.
 
-### Review Request (Admin)
+## Core Endpoints
 
-```json
-{
-  "reportBy": "Engineer Ahmad",
-  "reportDate": "2026-03-29T12:00:00.000Z",
-  "description": "On-site inspection completed, requires full reconstruction"
-}
-```
+Base URL: /api/v1
 
-## Notes
+Auth:
 
-- `synchronize` is set to `false` for production safety.
-- Use TypeORM migrations for schema changes.
-- Logout is token invalidation on client side by design for stateless JWT.
+- POST /auth/register
+- POST /auth/login
+
+User:
+
+- GET /services
+- POST /requests
+- GET /requests/my
+- GET /requests/:id
+- PATCH /requests/:id
+- DELETE /requests/:id
+
+Reviewer:
+
+- GET /reviewer/requests
+- PATCH /reviewer/requests/:id/status
+- POST /reviewer/requests/:id/note
+
+Admin:
+
+- CRUD /admin/users
+- CRUD /admin/services
+- CRUD /admin/service-fields
+- GET /admin/requests
+- PATCH /admin/requests/:id/status
+- GET /admin/statistics
+
+## Seed Data
+
+At startup, when SEED_ON_START=true, the API seeds:
+
+- Services (Reconstruction, Health Aid, Humanitarian Aid)
+- Dynamic service fields for each service
+
+## Full Documentation
+
+See PROJECT_DOCUMENTATION.md for complete system and API documentation.

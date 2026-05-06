@@ -23,6 +23,7 @@ const getEnv = (
 export const env = {
   nodeEnv: getEnv("NODE_ENV", "development"),
   port: Number(getEnv("PORT", "5000")),
+  seedOnStart: getEnv("SEED_ON_START", "true") === "true",
   db: {
     host: getEnv("DB_HOST"),
     port: Number(getEnv("DB_PORT", "3306")),
@@ -33,6 +34,7 @@ export const env = {
   },
   jwt: {
     secret: getEnv("JWT_SECRET"),
-    expiresIn: getEnv("JWT_EXPIRES_IN", "1d")
+    expiresIn: getEnv("JWT_EXPIRES_IN", "1d"),
+    reviewerDefaultPassword: getEnv("REVIEWER_DEFAULT_PASSWORD", "ReviewerPass123")
   }
 };

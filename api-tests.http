@@ -1,192 +1,229 @@
 ### =========================================
-### Rebuildings Project API Tests (REST Client)
-### Use with VS Code REST Client extension
+### Citizen Assistance API Tests (REST Client)
 ### =========================================
 
 @baseUrl = http://localhost:5000/api/v1
 @contentType = application/json
 
-# Set these manually after login responses
-@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiYWNjb3VudFR5cGUiOiJVU0VSIiwiaWF0IjoxNzc0NzY2NTE4LCJleHAiOjE3NzQ4NTI5MTh9.Ngb7u8O9ETeiZ4Sw-7vyhTpJaCftknzEjUvJUukxOb4
+@userToken = REPLACE_WITH_USER_JWT
+@reviewerToken = REPLACE_WITH_REVIEWER_JWT
 @adminToken = REPLACE_WITH_ADMIN_JWT
 
-# Replace these with real IDs from your DB / responses
+# Test Data - Update these with real IDs from responses
+@serviceId = 1
 @requestId = 1
+@userId = 1
+@serviceFieldId = 1
+@newServiceId = 2
 
-### -----------------------------------------
-### Health Check
-### -----------------------------------------
-
+### Health
 GET {{baseUrl}}/health
 
-### -----------------------------------------
-### Auth - User
-### -----------------------------------------
-
-### Register User
+### Register (USER)
 POST {{baseUrl}}/auth/register
 Content-Type: {{contentType}}
 
 {
-  "name": "Mahmoud Al-Najjar",
-  "phone": "+970599111222",
-  "email": "mahmoud.user@example.com",
-  "username": "mahmoud_user",
+  "name": "Ahmad User",
+  "email": "ahmad.user@example.com",
   "password": "StrongPass123",
-  "nationalId": "402019876",
-  "city": "Gaza",
-  "socialStatus": "Married",
-  "familyMembersNumber": 6
+  "phone": "+970599000000",
+  "city": "Gaza"
 }
 
-### Login User (email or username in identifier)
+### Login (User/Reviewer/Admin)
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "identifier": "mahmoud.user@example.com",
+  "email": "ahmad.user@example.com",
   "password": "StrongPass123"
 }
 
-### Logout User
-POST {{baseUrl}}/auth/logout
+### USER - Get Services
+GET {{baseUrl}}/services
 Authorization: Bearer {{userToken}}
 
-### -----------------------------------------
-### Auth - Admin
-### -----------------------------------------
-
-# Note:
-# Admin is not created through /auth/register in current implementation.
-# Use an existing admin account seeded directly in DB.
-
-### Login Admin
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "identifier": "admin@example.com",
-  "password": "AdminStrongPass123"
-}
-
-### Logout Admin
-POST {{baseUrl}}/auth/logout
-Authorization: Bearer {{adminToken}}
-
-### -----------------------------------------
-### User Profile (USER role)
-### -----------------------------------------
-
-### Get My Profile
-GET {{baseUrl}}/users/me
-Authorization: Bearer {{userToken}}
-
-### Update My Profile
-PATCH {{baseUrl}}/users/me
-Authorization: Bearer {{userToken}}
-Content-Type: {{contentType}}
-
-{
-  "name": "Mahmoud Al-Najjar Updated",
-  "phone": "+970599222333",
-  "city": "Khan Younis",
-  "socialStatus": "Married",
-  "familyMembersNumber": 7
-}
-
-### -----------------------------------------
-### Requests (USER role)
-### -----------------------------------------
-
-### Create Request - Reconstruction
+### USER - Create Request
 POST {{baseUrl}}/requests
 Authorization: Bearer {{userToken}}
 Content-Type: {{contentType}}
 
 {
-  "reqType": "RECONSTRUCTION",
-  "reqDate": "2026-03-29T10:00:00.000Z",
-  "description": "Main structure damaged, roof collapse, walls need complete rebuild.",
-  "withDocs": false,
-  "buildingNumber": "GAZA-B-1099"
+  "serviceId": {{serviceId}},
+  "data": [
+    { "fieldId": 1, "value": "Gaza - Al Remal - Building 10" },
+    { "fieldId": 2, "value": "Severe" },
+    { "fieldId": 3, "value": "42000" }
+  ],
+  "media": [
+    { "filePath": "uploads/proof-1.jpg", "type": "image" },
+    { "filePath": "uploads/report-1.pdf", "type": "pdf" }
+  ]
 }
 
-### Create Request - Aid
-POST {{baseUrl}}/requests
-Authorization: Bearer {{userToken}}
-Content-Type: {{contentType}}
-
-{
-  "reqType": "AID",
-  "reqDate": "2026-03-30T11:15:00.000Z",
-  "description": "Temporary shelter support required for displaced family members.",
-  "withDocs": false,
-  "buildingNumber": "RAFAH-A-233"
-}
-
-### List My Requests (pagination + filters + search)
-GET {{baseUrl}}/requests?page=1&limit=10&status=PENDING&type=RECONSTRUCTION&search=roof
+### USER - List My Requests
+GET {{baseUrl}}/requests/my?page=1&limit=10&status=PENDING
 Authorization: Bearer {{userToken}}
 
-### Get My Request By ID
+### USER - Get My Request By Id
 GET {{baseUrl}}/requests/{{requestId}}
 Authorization: Bearer {{userToken}}
 
-### Update My Request
+### USER - Update Request (allowed only PENDING or NEEDS_INFO)
 PATCH {{baseUrl}}/requests/{{requestId}}
 Authorization: Bearer {{userToken}}
 Content-Type: {{contentType}}
 
 {
-  "description": "Updated details: second floor and stairwell are also damaged.",
-  "withDocs": true,
-  "buildingNumber": "GAZA-B-1099-REV1"
+  "data": [
+    { "fieldId": 1, "value": "Updated address" },
+    { "fieldId": 2, "value": "Moderate" },
+    { "fieldId": 3, "value": "35000" }
+  ]
 }
 
-### Delete My Request
+### USER - Delete Request
 DELETE {{baseUrl}}/requests/{{requestId}}
 Authorization: Bearer {{userToken}}
 
-### Optional: Upload Request Document (multipart/form-data)
-POST {{baseUrl}}/requests/{{requestId}}/documents
-Authorization: Bearer {{userToken}}
-Content-Type: multipart/form-data; boundary=WebAppBoundary
+### REVIEWER - List Requests (mode=assigned|all)
+GET {{baseUrl}}/reviewer/requests?page=1&limit=20&mode=all&status=PENDING
+Authorization: Bearer {{reviewerToken}}
 
---WebAppBoundary
-Content-Disposition: form-data; name="document"; filename="damage-report.pdf"
-Content-Type: application/pdf
+### REVIEWER - Update Request Status
+PATCH {{baseUrl}}/reviewer/requests/{{requestId}}/status
+Authorization: Bearer {{reviewerToken}}
+Content-Type: {{contentType}}
 
-< ./sample-files/damage-report.pdf
---WebAppBoundary--
+{
+  "status": "NEEDS_INFO"
+}
 
-### -----------------------------------------
-### Admin Endpoints (ADMIN role)
-### -----------------------------------------
+### REVIEWER - Reject Request (reason required)
+PATCH {{baseUrl}}/reviewer/requests/{{requestId}}/status
+Authorization: Bearer {{reviewerToken}}
+Content-Type: {{contentType}}
 
-### Get Admin Statistics
-GET {{baseUrl}}/admin/statistics
+{
+  "status": "REJECTED",
+  "rejectionReason": "Uploaded ownership document is missing signature"
+}
+
+### REVIEWER - Add Note
+POST {{baseUrl}}/reviewer/requests/{{requestId}}/note
+Authorization: Bearer {{reviewerToken}}
+Content-Type: {{contentType}}
+
+{
+  "note": "Please upload a clearer copy of your national ID."
+}
+
+### ADMIN - List Users
+GET {{baseUrl}}/admin/users?page=1&limit=10&role=USER&search=ahmad
 Authorization: Bearer {{adminToken}}
 
-### List All Requests (pagination + filters + search + city)
-GET {{baseUrl}}/admin/requests?page=1&limit=20&status=PENDING&type=AID&city=Gaza&search=family
+### ADMIN - Create User
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Reviewer One",
+  "email": "reviewer.one@example.com",
+  "password": "StrongPass123",
+  "phone": "+970599000001",
+  "city": "Gaza",
+  "role": "REVIEWER"
+}
+
+### ADMIN - Update User
+PATCH {{baseUrl}}/admin/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "city": "Rafah",
+  "role": "REVIEWER"
+}
+
+### ADMIN - Delete User
+DELETE {{baseUrl}}/admin/users/{{userId}}
 Authorization: Bearer {{adminToken}}
 
-### Update Request Status
+### ADMIN - List Services
+GET {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Create Service
+POST {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Emergency Shelter",
+  "description": "Urgent temporary shelter support"
+}
+
+### ADMIN - Update Service
+PATCH {{baseUrl}}/admin/services/{{serviceId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "description": "Urgent temporary shelter and rent support"
+}
+
+### ADMIN - Delete Service
+DELETE {{baseUrl}}/admin/services/{{serviceId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - List Service Fields
+GET {{baseUrl}}/admin/service-fields?serviceId={{serviceId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Create Service Field
+POST {{baseUrl}}/admin/service-fields
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "serviceId": {{serviceId}},
+  "fieldName": "beneficiary_count",
+  "fieldType": "number",
+  "required": true
+}
+
+### ADMIN - Update Service Field
+PATCH {{baseUrl}}/admin/service-fields/{{serviceFieldId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "required": false
+}
+
+### ADMIN - Delete Service Field
+DELETE {{baseUrl}}/admin/service-fields/{{serviceFieldId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - List Requests
+GET {{baseUrl}}/admin/requests?page=1&limit=20&status=UNDER_REVIEW&city=Gaza
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Get Request Details (Admin)
+GET {{baseUrl}}/admin/requests/{{requestId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Override Request Status
 PATCH {{baseUrl}}/admin/requests/{{requestId}}/status
 Authorization: Bearer {{adminToken}}
 Content-Type: {{contentType}}
 
 {
-  "status": "UNDER_REVIEW"
+  "status": "APPROVED"
 }
 
-### Review Request (Create Damage Report)
-POST {{baseUrl}}/admin/requests/{{requestId}}/review
+### ADMIN - Statistics
+GET {{baseUrl}}/admin/statistics
 Authorization: Bearer {{adminToken}}
-Content-Type: {{contentType}}
-
-{
-  "reportBy": "Eng. Omar Khaled",
-  "reportDate": "2026-03-31T09:30:00.000Z",
-  "description": "Inspection completed. Building foundation compromised and reconstruction required."
-}

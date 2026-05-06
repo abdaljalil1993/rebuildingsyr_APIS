@@ -16,4 +16,12 @@ export class MediaRepository {
   save(media: Media): Promise<Media> {
     return this.repository.save(media);
   }
+
+  findByRequestId(requestId: number): Promise<Media[]> {
+    return this.repository.find({ where: { requestId } });
+  }
+
+  async deleteById(id: number): Promise<void> {
+    await this.repository.delete({ id });
+  }
 }

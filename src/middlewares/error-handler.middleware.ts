@@ -30,6 +30,9 @@ export const errorHandler = (
     }
   }
 
+  // eslint-disable-next-line no-console
+  console.error("Unhandled error:", err);
+
   return res.status(500).json({
     success: false,
     message: "Internal server error"

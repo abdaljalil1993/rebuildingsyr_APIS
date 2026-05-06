@@ -74,28 +74,3 @@ export const getMyRequestById = asyncHandler(async (req: Request, res: Response)
     data: request
   });
 });
-
-export const uploadDocument = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id;
-  const requestId = Number(req.params.id);
-
-  if (!req.file) {
-    res.status(400).json({
-      success: false,
-      message: "Document file is required"
-    });
-    return;
-  }
-
-  const media = await requestService.uploadDocument(
-    userId,
-    requestId,
-    req.file.path
-  );
-
-  res.status(201).json({
-    success: true,
-    message: "Document uploaded successfully",
-    data: media
-  });
-});

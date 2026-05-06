@@ -1,10 +1,10 @@
-import type { AccountType } from "../constants/enums";
+import type { UserRole } from "../constants/enums";
 
 declare global {
   namespace Express {
     interface UserPayload {
       id: number;
-      accountType: AccountType;
+      role: UserRole;
     }
 
     interface Request {

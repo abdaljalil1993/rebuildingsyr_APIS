@@ -1,59 +1,68 @@
 import { Transform } from "class-transformer";
 import {
-  IsBoolean,
-  IsDateString,
+  ArrayNotEmpty,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Min
+  IsUrl,
+  MaxLength,
+  Min,
+  ValidateNested
 } from "class-validator";
-import { RequestStatus, RequestType } from "../constants/enums";
+import { Type } from "class-transformer";
+import { MediaType, RequestStatus } from "../constants/enums";
+
+export class RequestFieldValueDto {
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  fieldId!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  value!: string;
+}
+
+export class RequestMediaDto {
+  @IsString()
+  @IsNotEmpty()
+  filePath!: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl({ require_tld: false }, { message: "url must be a valid URL when provided" })
+  url?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(MediaType)
+  type!: MediaType;
+}
 
 export class CreateRequestDto {
-  @IsEnum(RequestType)
-  reqType!: RequestType;
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  serviceId!: number;
 
-  @IsDateString()
-  reqDate!: string;
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => RequestFieldValueDto)
+  data!: RequestFieldValueDto[];
 
-  @IsString()
-  @IsNotEmpty()
-  description!: string;
-
-  @Transform(({ value }) => value === true || value === "true")
-  @IsBoolean()
-  withDocs!: boolean;
-
-  @IsString()
-  @IsNotEmpty()
-  buildingNumber!: string;
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => RequestMediaDto)
+  media?: RequestMediaDto[];
 }
 
 export class UpdateRequestDto {
   @IsOptional()
-  @IsEnum(RequestType)
-  reqType?: RequestType;
-
-  @IsOptional()
-  @IsDateString()
-  reqDate?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  description?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => value === true || value === "true")
-  @IsBoolean()
-  withDocs?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  buildingNumber?: string;
+  @ValidateNested({ each: true })
+  @Type(() => RequestFieldValueDto)
+  data?: RequestFieldValueDto[];
 }
 
 export class ListRequestsQueryDto {
@@ -74,8 +83,10 @@ export class ListRequestsQueryDto {
   status?: RequestStatus;
 
   @IsOptional()
-  @IsEnum(RequestType)
-  type?: RequestType;
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  serviceId?: number;
 
   @IsOptional()
   @IsString()
@@ -86,20 +97,24 @@ export class ListRequestsQueryDto {
   search?: string;
 }
 
+export class ReviewerListRequestsQueryDto extends ListRequestsQueryDto {
+  @IsOptional()
+  @IsString()
+  mode?: "assigned" | "all";
+}
+
 export class UpdateRequestStatusDto {
   @IsEnum(RequestStatus)
   status!: RequestStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  rejectionReason?: string;
 }
 
-export class CreateDamageReportDto {
+export class CreateRequestNoteDto {
   @IsString()
   @IsNotEmpty()
-  reportBy!: string;
-
-  @IsDateString()
-  reportDate!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  description!: string;
+  note!: string;
 }

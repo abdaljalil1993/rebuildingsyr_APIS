@@ -24,10 +24,3 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     data: result
   });
 });
-
-export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: "Logout successful. Remove token on client side."
-  });
-});

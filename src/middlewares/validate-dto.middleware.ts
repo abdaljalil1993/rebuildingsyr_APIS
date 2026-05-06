@@ -42,7 +42,7 @@ export const validateQueryDto = <T extends object>(dtoClass: new () => T) => {
       return next(new ApiError(400, details || "Query validation failed"));
     }
 
-    req.query = dtoObject as Request["query"];
+    Object.assign(req.query as Record<string, unknown>, dtoObject as Record<string, unknown>);
     return next();
   };
 };

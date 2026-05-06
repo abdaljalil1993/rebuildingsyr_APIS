@@ -1,14 +1,18 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
 } from "typeorm";
-import { RequestStatus, RequestType } from "../constants/enums";
+import { RequestStatus } from "../constants/enums";
 import { User } from "./User";
-import { DamageReport } from "./DamageReport";
+import { ServiceEntity } from "./Service";
+import { RequestData } from "./RequestData";
+import { RequestNote } from "./RequestNote";
 import { Media } from "./Media";
 
 @Entity({ name: "requests" })
@@ -23,26 +27,41 @@ export class RequestEntity {
   @JoinColumn({ name: "userId" })
   user!: User;
 
-  @Column({ type: "enum", enum: RequestType })
-  reqType!: RequestType;
+  @Column({ type: "int" })
+  serviceId!: number;
 
-  @Column({ type: "datetime" })
-  reqDate!: Date;
+  @ManyToOne(() => ServiceEntity, (service) => service.requests, {
+    onDelete: "RESTRICT"
+  })
+  @JoinColumn({ name: "serviceId" })
+  service!: ServiceEntity;
 
-  @Column({ type: "text" })
-  description!: string;
+  @Column({ type: "int", nullable: true })
+  assignedReviewerId!: number | null;
 
-  @Column({ type: "boolean", default: false })
-  withDocs!: boolean;
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "assignedReviewerId" })
+  assignedReviewer!: User | null;
+
+  @Column({ type: "varchar", length: 1000, nullable: true })
+  rejectionReason!: string | null;
+
+  @CreateDateColumn({ type: "datetime" })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: "datetime" })
+  updatedAt!: Date;
 
   @Column({ type: "enum", enum: RequestStatus, default: RequestStatus.PENDING })
   status!: RequestStatus;
 
-  @Column({ type: "varchar", length: 100 })
-  buildingNumber!: string;
+  @OneToMany(() => RequestData, (requestData) => requestData.request, {
+    cascade: true
+  })
+  data!: RequestData[];
 
-  @OneToMany(() => DamageReport, (damageReport) => damageReport.request)
-  damageReports!: DamageReport[];
+  @OneToMany(() => RequestNote, (note) => note.request, { cascade: true })
+  notes!: RequestNote[];
 
   @OneToMany(() => Media, (media) => media.request)
   media!: Media[];
