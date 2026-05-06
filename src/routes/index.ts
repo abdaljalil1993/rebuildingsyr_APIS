@@ -10,9 +10,9 @@ const router = Router();
 
 router.get("/health", healthCheck);
 router.use("/auth", authRoutes);
-router.use("/", userRoutes);
 router.use("/requests", requestRoutes);
 router.use("/reviewer", reviewerRoutes);
 router.use("/admin", adminRoutes);
+router.use("/", userRoutes);
 
 export default router;

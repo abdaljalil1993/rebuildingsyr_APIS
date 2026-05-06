@@ -31,7 +31,7 @@ export class AuthService {
       email: payload.email,
       phone: payload.phone,
       city: payload.city,
-      role: UserRole.USER,
+      role: payload.role ?? UserRole.USER,
       password: hashedPassword
     });
 
