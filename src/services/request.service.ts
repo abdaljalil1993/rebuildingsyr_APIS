@@ -218,4 +218,58 @@ export class RequestService {
 
     return request;
   }
+
+  // ============ PUBLIC METHODS ============
+
+  async listPublicRequests(query: any) {
+    const { page, limit, skip } = getPagination(query);
+    const [items, total] = await this.requestRepository.findAllPaginated(page, limit, {
+      status: RequestStatus.APPROVED,
+      serviceId: query.serviceId,
+      city: query.city,
+      search: query.search
+    });
+
+    return {
+      data: items.map((item) => this.sanitizePublicRequest(item)),
+      meta: buildPaginationMeta(page, limit, total)
+    };
+  }
+
+  async getPublicRequestById(requestId: number) {
+    const request = await this.requestRepository.findById(requestId);
+
+    if (!request) {
+      throw new ApiError(404, "Request not found");
+    }
+
+    if (request.status !== RequestStatus.APPROVED) {
+      throw new ApiError(403, "This request is not available for public view");
+    }
+
+    return this.sanitizePublicRequest(request);
+  }
+
+  private sanitizePublicRequest(request: any) {
+    return {
+      id: request.id,
+      status: request.status,
+      createdAt: request.createdAt,
+      updatedAt: request.updatedAt,
+      service: {
+        id: request.service.id,
+        name: request.service.name,
+        description: request.service.description
+      },
+      user: {
+        id: request.user.id,
+        name: request.user.name,
+        phone: request.user.phone,
+        email: request.user.email,
+        city: request.user.city
+      },
+      data: request.data,
+      media: request.media
+    };
+  }
 }

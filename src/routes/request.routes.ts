@@ -4,13 +4,16 @@ import {
   deleteRequest,
   getMyRequestById,
   listMyRequests,
-  updateRequest
+  updateRequest,
+  listPublicRequests,
+  getPublicRequestById
 } from "../controllers/request.controller";
 import { UserRole } from "../constants/enums";
 import {
   CreateRequestDto,
   ListRequestsQueryDto,
-  UpdateRequestDto
+  UpdateRequestDto,
+  PublicRequestsQueryDto
 } from "../dtos/request.dto";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/role.middleware";
@@ -21,6 +24,11 @@ import {
 
 const router = Router();
 
+// ============ PUBLIC ROUTES (No Authentication Required) ============
+router.get("/public", validateQueryDto(PublicRequestsQueryDto), listPublicRequests);
+router.get("/public/:id", getPublicRequestById);
+
+// ============ AUTHENTICATED ROUTES ============
 router.use(authMiddleware, authorizeRoles(UserRole.USER));
 
 router.post("/", validateDto(CreateRequestDto), createRequest);

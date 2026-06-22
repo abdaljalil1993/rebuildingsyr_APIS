@@ -19,6 +19,38 @@
 ### Health
 GET {{baseUrl}}/health
 
+### =========================================
+### PUBLIC APIS - Help Requests (No Auth)
+### =========================================
+
+### PUBLIC - List Approved Help Requests
+GET {{baseUrl}}/requests/public
+
+### PUBLIC - List Approved Requests with Filters (City)
+GET {{baseUrl}}/requests/public?page=1&limit=10&city=Gaza
+
+### PUBLIC - List Approved Requests (Specific Service)
+GET {{baseUrl}}/requests/public?serviceId=2&page=1&limit=10
+
+### PUBLIC - Search Approved Requests
+GET {{baseUrl}}/requests/public?search=shelter&page=1&limit=10
+
+### PUBLIC - List Approved Requests (Filter by City + Service)
+GET {{baseUrl}}/requests/public?city=Gaza&serviceId=2&page=1&limit=10
+
+### PUBLIC - Sort Approved Requests (Newest First)
+GET {{baseUrl}}/requests/public?sortBy=newest&page=1&limit=10
+
+### PUBLIC - Sort Approved Requests (Oldest First)
+GET {{baseUrl}}/requests/public?sortBy=oldest&page=1&limit=10
+
+### PUBLIC - Get Approved Request Details
+GET {{baseUrl}}/requests/public/{{requestId}}
+
+### =========================================
+### AUTHENTICATION
+### =========================================
+
 ### Register (USER)
 POST {{baseUrl}}/auth/register
 Content-Type: {{contentType}}
@@ -39,6 +71,10 @@ Content-Type: {{contentType}}
   "email": "ahmad.user@example.com",
   "password": "StrongPass123"
 }
+
+### =========================================
+### USER AUTHENTICATED APIS
+### =========================================
 
 ### USER - Get Services
 GET {{baseUrl}}/services
@@ -87,6 +123,10 @@ Content-Type: {{contentType}}
 DELETE {{baseUrl}}/requests/{{requestId}}
 Authorization: Bearer {{userToken}}
 
+### =========================================
+### REVIEWER APIS
+### =========================================
+
 ### REVIEWER - List Requests (mode=assigned|all)
 GET {{baseUrl}}/reviewer/requests?page=1&limit=20&mode=all&status=PENDING
 Authorization: Bearer {{reviewerToken}}
@@ -118,6 +158,10 @@ Content-Type: {{contentType}}
 {
   "note": "Please upload a clearer copy of your national ID."
 }
+
+### =========================================
+### ADMIN APIS
+### =========================================
 
 ### ADMIN - List Users
 GET {{baseUrl}}/admin/users?page=1&limit=10&role=USER&search=ahmad

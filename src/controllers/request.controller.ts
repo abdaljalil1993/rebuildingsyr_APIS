@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import {
   CreateRequestDto,
   ListRequestsQueryDto,
-  UpdateRequestDto
+  UpdateRequestDto,
+  PublicRequestsQueryDto
 } from "../dtos/request.dto";
 import { RequestService } from "../services/request.service";
 import { asyncHandler } from "../utils/async-handler";
@@ -68,6 +69,29 @@ export const getMyRequestById = asyncHandler(async (req: Request, res: Response)
   const userId = req.user!.id;
   const requestId = Number(req.params.id);
   const request = await requestService.getRequestById(userId, requestId);
+
+  res.status(200).json({
+    success: true,
+    data: request
+  });
+});
+
+// ============ PUBLIC ENDPOINTS ============
+
+export const listPublicRequests = asyncHandler(async (req: Request, res: Response) => {
+  const data = await requestService.listPublicRequests(
+    req.query as unknown as PublicRequestsQueryDto
+  );
+
+  res.status(200).json({
+    success: true,
+    ...data
+  });
+});
+
+export const getPublicRequestById = asyncHandler(async (req: Request, res: Response) => {
+  const requestId = Number(req.params.id);
+  const request = await requestService.getPublicRequestById(requestId);
 
   res.status(200).json({
     success: true,

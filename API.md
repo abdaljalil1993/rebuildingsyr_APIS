@@ -12,30 +12,33 @@
 2. [Request Status State Machine](#request-status-state-machine)
 3. [Authentication Flow](#authentication-flow)
 4. [Role & Permission Overview](#role--permission-overview)
-5. [Auth Endpoints](#auth-endpoints)
+5. [🌐 Public Endpoints (No Auth)](#-public-endpoints-no-authentication-required)
+   - [GET /requests/public](#get-requestspublic)
+   - [GET /requests/public/:id](#get-requestspublicid)
+6. [Auth Endpoints](#auth-endpoints)
    - [POST /auth/register](#post-authregister)
    - [POST /auth/login](#post-authlogin)
-6. [User Endpoints](#user-endpoints)
+7. [User Endpoints](#user-endpoints)
    - [GET /services](#get-services)
-7. [Request Endpoints (USER)](#request-endpoints-user)
+8. [Request Endpoints (USER)](#request-endpoints-user)
    - [POST /requests](#post-requests)
    - [GET /requests/my](#get-requestsmy)
    - [GET /requests/:id](#get-requestsid)
    - [PATCH /requests/:id](#patch-requestsid)
    - [DELETE /requests/:id](#delete-requestsid)
-8. [Reviewer Endpoints](#reviewer-endpoints)
+9. [Reviewer Endpoints](#reviewer-endpoints)
    - [GET /reviewer/requests](#get-reviewerrequests)
    - [PATCH /reviewer/requests/:id/status](#patch-reviewerrequestsidstatus)
    - [POST /reviewer/requests/:id/note](#post-reviewerrequestsidnote)
-9. [Admin Endpoints](#admin-endpoints)
+10. [Admin Endpoints](#admin-endpoints)
    - [User Management](#admin-user-management)
    - [Service Management](#admin-service-management)
    - [Service Field Management](#admin-service-field-management)
    - [Request Management (Admin)](#admin-request-management)
    - [GET /admin/statistics](#get-adminstatistics)
-10. [Health Check](#health-check)
-11. [Error Responses](#error-responses)
-12. [Pagination](#pagination)
+11. [Health Check](#health-check)
+12. [Error Responses](#error-responses)
+13. [Pagination](#pagination)
 
 ---
 
@@ -177,35 +180,247 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph Roles
-        U[USER]
-        R[REVIEWER]
-        A[ADMIN]
+        PUB["🌐 PUBLIC<br/>(No Auth)"]
+        U[👤 USER<br/>Authenticated]
+        R[👮 REVIEWER<br/>Authenticated]
+        A[🔧 ADMIN<br/>Authenticated]
     end
 
-    subgraph Endpoints
-        Auth[/auth/register, /auth/login]
-        Services[GET /services]
-        Requests[/requests/*]
-        Reviewer[/reviewer/*]
-        Admin[/admin/*]
-        Health[GET /health]
+    subgraph Public["Public Endpoints"]
+        PublicReq["GET /requests/public<br/>GET /requests/public/:id"]
+        Health["GET /health"]
+    end
+    
+    subgraph Protected["Protected Endpoints"]
+        Auth["/auth/register<br/>/auth/login"]
+        Services["GET /services"]
+        Requests["/requests/*"]
+        Reviewer["/reviewer/*"]
+        Admin["/admin/*"]
     end
 
+    PUB --> Public
     U --> Auth
     U --> Services
     U --> Requests
+    R --> Auth
     R --> Reviewer
+    A --> Auth
     A --> Reviewer
     A --> Admin
-    Health -.->|public| Everyone
 ```
 
-| Role | Auth | GET /services | /requests | /reviewer | /admin |
-|---|---|---|---|---|---|
-| **Public** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **USER** | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **REVIEWER** | ✅ | — | ❌ | ✅ | ❌ |
-| **ADMIN** | ✅ | — | ❌ | ✅ | ✅ |
+| Role | Auth | /requests/public | /services | /requests | /reviewer | /admin |
+|---|---|---|---|---|---|---|
+| **🌐 Public** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **👤 USER** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **👮 REVIEWER** | ✅ | ✅ | — | ❌ | ✅ | ❌ |
+| **🔧 ADMIN** | ✅ | ✅ | — | ❌ | ✅ | ✅ |
+
+---
+
+## 🌐 Public Endpoints (No Authentication Required)
+
+These endpoints allow the general public to browse and search approved help requests **without any authentication**.
+
+### GET /requests/public
+
+List all approved help requests with filtering, searching, and sorting capabilities.
+
+**Auth**: None (public)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Rules |
+|---|---|---|---|
+| `page` | integer | ❌ | defaults to 1, min 1 |
+| `limit` | integer | ❌ | defaults to 10, min 1 |
+| `city` | string | ❌ | filter by submitter's city |
+| `serviceId` | integer | ❌ | filter by help service type |
+| `search` | string | ❌ | search by service name or keywords |
+| `sortBy` | `newest` \| `oldest` | ❌ | order by creation date |
+
+**Example Requests:**
+
+```http
+GET /requests/public
+GET /requests/public?page=1&limit=10
+GET /requests/public?city=Gaza&page=1&limit=10
+GET /requests/public?serviceId=2&city=Damascus
+GET /requests/public?search=shelter&page=1&limit=20
+GET /requests/public?sortBy=newest&page=1&limit=15
+GET /requests/public?city=Gaza&serviceId=2&sortBy=newest&page=1&limit=10
+```
+
+**Response 200:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 42,
+      "status": "APPROVED",
+      "createdAt": "2024-01-18T09:15:00Z",
+      "updatedAt": "2024-01-19T16:20:00Z",
+      "service": {
+        "id": 2,
+        "name": "Financial Assistance",
+        "description": "Help with financial needs"
+      },
+      "user": {
+        "id": 5,
+        "name": "Sarah Ahmed",
+        "phone": "+970599888776",
+        "email": "sarah@example.com",
+        "city": "Gaza"
+      },
+      "data": [
+        {
+          "id": 95,
+          "requestId": 42,
+          "fieldId": 10,
+          "value": "10000 SYP",
+          "field": {
+            "id": 10,
+            "name": "Amount",
+            "type": "number",
+            "required": true
+          }
+        }
+      ],
+      "media": [
+        {
+          "id": 45,
+          "requestId": 42,
+          "filePath": "/uploads/proof.jpg",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 156,
+    "totalPages": 16
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Reason |
+|---|---|
+| 400 | Invalid query parameters (e.g., page < 1) |
+
+**Notes:**
+
+- Only requests with status `APPROVED` are returned.
+- Submitter's contact information (phone, email) is **exposed** for public viewing.
+- Results are paginated; use `page` and `limit` to navigate.
+- Filtering and sorting can be combined.
+
+---
+
+### GET /requests/public/:id
+
+Retrieve full details of a specific approved help request, including submitter contact information.
+
+**Auth**: None (public)
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Rules |
+|---|---|---|---|
+| `id` | integer | ✅ | request ID |
+
+**Example Request:**
+
+```http
+GET /requests/public/42
+```
+
+**Response 200:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "status": "APPROVED",
+    "createdAt": "2024-01-18T09:15:00Z",
+    "updatedAt": "2024-01-19T16:20:00Z",
+    "service": {
+      "id": 2,
+      "name": "Financial Assistance",
+      "description": "Help with financial needs"
+    },
+    "user": {
+      "id": 5,
+      "name": "Sarah Ahmed",
+      "phone": "+970599888776",
+      "email": "sarah@example.com",
+      "city": "Gaza"
+    },
+    "data": [
+      {
+        "id": 95,
+        "requestId": 42,
+        "fieldId": 10,
+        "value": "10000 SYP",
+        "field": {
+          "id": 10,
+          "name": "Amount",
+          "type": "number",
+          "required": true
+        }
+      },
+      {
+        "id": 96,
+        "requestId": 42,
+        "fieldId": 11,
+        "value": "Family of 6 needs urgent financial support",
+        "field": {
+          "id": 11,
+          "name": "Description",
+          "type": "text",
+          "required": true
+        }
+      }
+    ],
+    "media": [
+      {
+        "id": 45,
+        "requestId": 42,
+        "filePath": "/uploads/proof.jpg",
+        "type": "image",
+        "createdAt": "2024-01-18T09:16:00Z"
+      },
+      {
+        "id": 46,
+        "requestId": 42,
+        "filePath": "/uploads/document.pdf",
+        "type": "pdf",
+        "createdAt": "2024-01-18T09:17:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Reason |
+|---|---|
+| 404 | Request not found |
+| 403 | Request exists but is not approved (status ≠ APPROVED) |
+
+**Notes:**
+
+- Request must have status `APPROVED` to be publicly viewable.
+- All attached media files are included.
+- Service field details are provided for context.
 
 ---
 
