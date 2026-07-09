@@ -86,6 +86,7 @@ Auth:
 User:
 
 - GET /services
+- PATCH /profile
 - POST /requests
 - GET /requests/my
 - GET /requests/:id

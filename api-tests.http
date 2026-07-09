@@ -80,6 +80,17 @@ Content-Type: {{contentType}}
 GET {{baseUrl}}/services
 Authorization: Bearer {{userToken}}
 
+### USER - Update My Profile
+PATCH {{baseUrl}}/profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Ahmad User Updated",
+  "city": "Khan Younis",
+  "phone": "+970599123456"
+}
+
 ### USER - Create Request
 POST {{baseUrl}}/requests
 Authorization: Bearer {{userToken}}

@@ -55,6 +55,25 @@ export class UpdateUserByAdminDto {
   role?: UserRole;
 }
 
+export class UpdateMyProfileDto {
+  @IsOptional()
+  @IsString()
+  @Length(2, 150)
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+}
+
 export class ListUsersQueryDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
