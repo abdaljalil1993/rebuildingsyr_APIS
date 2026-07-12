@@ -26,6 +26,12 @@ GET {{baseUrl}}/health
 ### PUBLIC - List Approved Help Requests
 GET {{baseUrl}}/requests/public
 
+### PUBLIC - List ALL Help Requests (No Status Restriction)
+GET {{baseUrl}}/requests/all?page=1&limit=10
+
+### PUBLIC - List ALL Requests (Optional Status Filter)
+GET {{baseUrl}}/requests/all?page=1&limit=10&status=PENDING
+
 ### PUBLIC - List Approved Requests with Filters (City)
 GET {{baseUrl}}/requests/public?page=1&limit=10&city=Gaza
 

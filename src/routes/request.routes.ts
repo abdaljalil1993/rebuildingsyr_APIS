@@ -4,6 +4,7 @@ import {
   deleteRequest,
   getMyRequestById,
   listMyRequests,
+  listAllPublicRequests,
   updateRequest,
   listPublicRequests,
   getPublicRequestById
@@ -25,6 +26,7 @@ import {
 const router = Router();
 
 // ============ PUBLIC ROUTES (No Authentication Required) ============
+router.get("/all", validateQueryDto(ListRequestsQueryDto), listAllPublicRequests);
 router.get("/public", validateQueryDto(PublicRequestsQueryDto), listPublicRequests);
 router.get("/public/:id", getPublicRequestById);
 

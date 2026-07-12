@@ -89,6 +89,17 @@ export const listPublicRequests = asyncHandler(async (req: Request, res: Respons
   });
 });
 
+export const listAllPublicRequests = asyncHandler(async (req: Request, res: Response) => {
+  const data = await requestService.listAllPublicRequests(
+    req.query as unknown as ListRequestsQueryDto
+  );
+
+  res.status(200).json({
+    success: true,
+    ...data
+  });
+});
+
 export const getPublicRequestById = asyncHandler(async (req: Request, res: Response) => {
   const requestId = Number(req.params.id);
   const request = await requestService.getPublicRequestById(requestId);

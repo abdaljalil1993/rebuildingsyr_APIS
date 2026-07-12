@@ -221,6 +221,21 @@ export class RequestService {
 
   // ============ PUBLIC METHODS ============
 
+  async listAllPublicRequests(query: ListRequestsQueryDto) {
+    const { page, limit } = getPagination(query);
+    const [items, total] = await this.requestRepository.findAllPaginated(page, limit, {
+      status: query.status,
+      serviceId: query.serviceId,
+      city: query.city,
+      search: query.search
+    });
+
+    return {
+      data: items.map((item) => this.sanitizePublicRequest(item)),
+      meta: buildPaginationMeta(page, limit, total)
+    };
+  }
+
   async listPublicRequests(query: any) {
     const { page, limit, skip } = getPagination(query);
     const [items, total] = await this.requestRepository.findAllPaginated(page, limit, {
