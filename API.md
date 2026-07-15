@@ -1608,3 +1608,113 @@ All list endpoints return a `meta` object:
 | `limit` | `10` | Items per page |
 
 **Skip calculation:** `skip = (page - 1) * limit`
+
+---
+
+## Help Offer Endpoints
+
+This module allows authenticated users to offer help for approved public requests, and allows admins to track and manage each offer lifecycle.
+
+### Help Offer Statuses
+
+| Status | Meaning |
+|---|---|
+| `NEW` | New offer submitted by helper |
+| `CONTACTED` | Admin has contacted helper/request owner |
+| `IN_PROGRESS` | Help delivery is currently ongoing |
+| `COMPLETED` | Help was successfully delivered |
+| `REJECTED` | Offer rejected by admin decision |
+| `CANCELED` | Offer canceled by helper or admin |
+
+### User Help Offer APIs
+
+All endpoints require `Authorization: Bearer <token>` with role `USER`.
+
+#### POST /help-offers
+
+Create a new help offer for an existing approved request.
+
+**Request Body:**
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `requestId` | number | ✅ | positive integer |
+| `message` | string | ❌ | max 1000 chars |
+
+**Business Rules:**
+
+- Request must exist and be `APPROVED`.
+- Helper cannot submit an offer for their own request.
+- Duplicate active offers are blocked for same helper + same request.
+
+---
+
+#### GET /help-offers/my
+
+List helper's own offers with pagination and optional filters.
+
+**Query Parameters:** `page`, `limit`, `status`, `requestId`, `search`
+
+---
+
+#### GET /help-offers/my/:id
+
+Get details for one help offer owned by the authenticated helper.
+
+---
+
+#### PATCH /help-offers/my/:id/cancel
+
+Cancel helper's own offer.
+
+**Request Body:**
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `cancelReason` | string | ❌ | max 1000 chars |
+
+**Rules:**
+
+- Cannot cancel an already `CANCELED` offer.
+- Cannot cancel offers already `COMPLETED` or `REJECTED`.
+
+### Admin Help Offer APIs
+
+All endpoints require `Authorization: Bearer <token>` with role `ADMIN`.
+
+#### GET /admin/help-offers
+
+List all help offers with pagination and filters.
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `page` | number | ❌ | Page number |
+| `limit` | number | ❌ | Items per page |
+| `status` | HelpOfferStatus | ❌ | Filter by status |
+| `requestId` | number | ❌ | Filter by request ID |
+| `helperUserId` | number | ❌ | Filter by helper user ID |
+| `city` | string | ❌ | Filter by request owner city |
+| `search` | string | ❌ | Search by helper/request owner/service |
+
+---
+
+#### GET /admin/help-offers/:id
+
+Get full details of a specific help offer.
+
+---
+
+#### PATCH /admin/help-offers/:id/status
+
+Update help offer status as admin and optionally add follow-up note.
+
+**Request Body:**
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `status` | HelpOfferStatus | ✅ | enum value |
+| `adminNote` | string | ❌ | max 1000 chars |
+
+When status becomes `COMPLETED`, `completedAt` is automatically set.

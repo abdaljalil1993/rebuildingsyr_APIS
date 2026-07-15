@@ -23,3 +23,12 @@ export enum MediaType {
   IMAGE = "image",
   PDF = "pdf"
 }
+
+export enum HelpOfferStatus {
+  NEW = "NEW",
+  CONTACTED = "CONTACTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  REJECTED = "REJECTED",
+  CANCELED = "CANCELED"
+}

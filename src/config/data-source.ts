@@ -8,6 +8,7 @@ import { ServiceEntity } from "../entities/Service";
 import { ServiceField } from "../entities/ServiceField";
 import { RequestData } from "../entities/RequestData";
 import { RequestNote } from "../entities/RequestNote";
+import { HelpOffer } from "../entities/HelpOffer";
 
 export const AppDataSource = new DataSource({
   type: "mysql",
@@ -23,7 +24,8 @@ export const AppDataSource = new DataSource({
     RequestEntity,
     RequestData,
     RequestNote,
-    Media
+    Media,
+    HelpOffer
   ],
   synchronize: env.db.synchronize,
   logging: env.nodeEnv === "development",

@@ -5,7 +5,7 @@
 @baseUrl = http://localhost:5000/api/v1
 @contentType = application/json
 
-@userToken = REPLACE_WITH_USER_JWT
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg0MTA4MTA5LCJleHAiOjE3ODQxOTQ1MDl9.LVOFTOupDPDHbj28TRV7e8oEdBRjoN_ZLaO0iAsgIrk
 @reviewerToken = REPLACE_WITH_REVIEWER_JWT
 @adminToken = REPLACE_WITH_ADMIN_JWT
 
@@ -15,6 +15,7 @@
 @userId = 1
 @serviceFieldId = 1
 @newServiceId = 2
+@helpOfferId = 1
 
 ### Health
 GET {{baseUrl}}/health
@@ -288,3 +289,70 @@ Content-Type: {{contentType}}
 ### ADMIN - Statistics
 GET {{baseUrl}}/admin/statistics
 Authorization: Bearer {{adminToken}}
+
+### =========================================
+### HELP OFFERS - USER APIS
+### =========================================
+
+### USER - Submit Help Offer For a Public Request
+POST {{baseUrl}}/help-offers
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "requestId": {{requestId}},
+  "message": "I can provide direct support and follow up this week"
+}
+
+### USER - List My Help Offers
+GET {{baseUrl}}/help-offers/my?page=1&limit=10&status=NEW
+Authorization: Bearer {{userToken}}
+
+### USER - Get My Help Offer Details
+GET {{baseUrl}}/help-offers/my/{{helpOfferId}}
+Authorization: Bearer {{userToken}}
+
+### USER - Cancel My Help Offer
+PATCH {{baseUrl}}/help-offers/my/{{helpOfferId}}/cancel
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "cancelReason": "Unable to continue due to travel constraints"
+}
+
+### =========================================
+### HELP OFFERS - ADMIN APIS
+### =========================================
+
+### ADMIN - List Help Offers
+GET {{baseUrl}}/admin/help-offers?page=1&limit=20&status=NEW
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - List Help Offers (with filters)
+GET {{baseUrl}}/admin/help-offers?page=1&limit=20&requestId={{requestId}}&helperUserId={{userId}}&city=Gaza
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Get Help Offer Details
+GET {{baseUrl}}/admin/help-offers/{{helpOfferId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN - Update Help Offer Status
+PATCH {{baseUrl}}/admin/help-offers/{{helpOfferId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "IN_PROGRESS",
+  "adminNote": "Admin contacted both parties and initiated coordination"
+}
+
+### ADMIN - Mark Help Offer Completed
+PATCH {{baseUrl}}/admin/help-offers/{{helpOfferId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED",
+  "adminNote": "Support was delivered and confirmed"
+}
