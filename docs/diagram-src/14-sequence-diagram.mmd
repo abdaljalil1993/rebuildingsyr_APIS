@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor Reviewer
+  participant RevAPI as Reviewer Controller
+  participant RevService
+  participant ReqRepo
+  participant NoteRepo
+
+  Reviewer->>RevAPI: POST /reviewer/requests/:id/note
+  RevAPI->>RevService: addNote(reviewerId, requestId, note)
+  RevService->>ReqRepo: findById(requestId)
+  RevService->>NoteRepo: save(note)
+  RevService->>ReqRepo: save(status=UNDER_REVIEW if PENDING)
+  RevService-->>RevAPI: note saved
+  RevAPI-->>Reviewer: 201 Created
+
+  Reviewer->>RevAPI: PATCH /reviewer/requests/:id/status
+  RevAPI->>RevService: updateRequestStatus(...)
+  RevService->>ReqRepo: save(new status, rejectionReason rules)
+  RevAPI-->>Reviewer: 200 OK

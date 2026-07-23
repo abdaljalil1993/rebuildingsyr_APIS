@@ -1,0 +1,16 @@
+sequenceDiagram
+  actor Client
+  participant AuthAPI as Auth Controller
+  participant AuthService
+  participant UserRepo
+  participant JWT as JWT Utility
+
+  Client->>AuthAPI: POST /auth/login (email, password)
+  AuthAPI->>AuthService: login(payload)
+  AuthService->>UserRepo: findByEmail(email)
+  UserRepo-->>AuthService: user or null
+  AuthService->>AuthService: compare password hash
+  AuthService->>JWT: sign({ id, role })
+  JWT-->>AuthService: access token
+  AuthService-->>AuthAPI: token + safe user
+  AuthAPI-->>Client: 200 OK

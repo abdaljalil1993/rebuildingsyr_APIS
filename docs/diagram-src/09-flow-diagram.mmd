@@ -1,0 +1,12 @@
+flowchart TD
+  A[USER sends POST /requests] --> B[Validate CreateRequestDto]
+  B --> C[Load service + service fields]
+  C --> D[Validate allowed field ids]
+  D --> E[Validate required fields]
+  E --> F[Create request with status PENDING]
+  F --> G[Insert request_data rows]
+  G --> H{Media provided?}
+  H -->|Yes| I[Insert media rows]
+  H -->|No| J[Skip media insert]
+  I --> K[Load hydrated request and return]
+  J --> K

@@ -1,0 +1,11 @@
+flowchart TD
+  A[Public client sends GET /requests/public] --> B[Validate query params]
+  B --> C[Force filter status=APPROVED]
+  C --> D[Query repository with pagination]
+  D --> E[Sanitize response fields]
+  E --> F[Return contact-enabled approved requests]
+
+  G[Public client sends GET /requests/public/:id] --> H[Load request by id]
+  H --> I{Status APPROVED?}
+  I -->|Yes| J[Return sanitized request details]
+  I -->|No| K[403 Not available for public view]

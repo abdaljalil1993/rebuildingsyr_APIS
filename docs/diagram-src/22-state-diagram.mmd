@@ -1,0 +1,14 @@
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> ManagingUsers
+  Idle --> ManagingServices
+  Idle --> ManagingServiceFields
+  Idle --> ManagingRequests
+  Idle --> ManagingHelpOffers
+  Idle --> ViewingStatistics
+  ManagingUsers --> Idle
+  ManagingServices --> Idle
+  ManagingServiceFields --> Idle
+  ManagingRequests --> Idle
+  ManagingHelpOffers --> Idle
+  ViewingStatistics --> Idle

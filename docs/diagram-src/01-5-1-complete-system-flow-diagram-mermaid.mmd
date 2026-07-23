@@ -1,0 +1,27 @@
+graph TD
+    A["👤 Public User<br/>(No Auth)"] -->|Browse| B["GET /requests/public<br/>List Approved Requests"]
+    B -->|Filter/Search| C["Query Parameters<br/>city, service, search,<br/>sortBy, page, limit"]
+    C -->|Display| D["📋 Approved Requests<br/>with Contact Info"]
+    D -->|Click Detail| E["GET /requests/public/:id<br/>View Full Details"]
+    E -->|See Contact| F["📞 Submitter Info<br/>name, phone, email,<br/>city"]
+    
+    G["👤 Registered User<br/>(Authenticated)"] -->|Login| H["POST /auth/login<br/>Get JWT Token"]
+    H -->|Create Aid Request| I["POST /requests<br/>Submit Help Request"]
+    I -->|Provide Details| J["📝 Service Data<br/>fields, media,<br/>contact info"]
+    J -->|Status PENDING| K["⏳ Awaiting Review"]
+    
+    K -->|Reviewer Reviews| L["👮 Reviewer<br/>PATCH /reviewer/requests/:id"]
+    L -->|Add Notes| M["POST /reviewer/requests/:id/note"]
+    L -->|Change Status| N["Status Update Decision"]
+    
+    N -->|Rejected| O["❌ REJECTED<br/>Not in Public API"]
+    N -->|Needs Info| P["❓ NEEDS_INFO<br/>User Updates"]
+    P -->|User Updates| Q["PATCH /requests/:id<br/>Update Request"]
+    Q -->|Reset to PENDING| K
+    
+    N -->|Approved| R["✅ APPROVED<br/>Visible in Public API"]
+    R -->|Now Visible| D
+    
+    S["🔧 Admin"] -->|Manage| T["Full CRUD<br/>Users, Services,<br/>Service Fields"]
+    S -->|Override Status| U["PATCH /admin/requests/:id"]
+    S -->|Statistics| V["GET /admin/statistics"]

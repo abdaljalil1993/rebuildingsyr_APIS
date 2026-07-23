@@ -1,0 +1,22 @@
+sequenceDiagram
+  actor User
+  participant ReqAPI as Request Controller
+  participant ReqService
+  participant ServiceRepo
+  participant FieldRepo
+  participant ReqRepo
+  participant DataRepo
+  participant MediaRepo
+
+  User->>ReqAPI: POST /requests
+  ReqAPI->>ReqService: createRequest(userId, dto)
+  ReqService->>ServiceRepo: findById(serviceId)
+  ReqService->>FieldRepo: findByServiceId(serviceId)
+  ReqService->>ReqService: validate required + allowed fields
+  ReqService->>ReqRepo: save(request: PENDING)
+  ReqService->>DataRepo: saveMany(request_data)
+  ReqService->>MediaRepo: save(media) (optional)
+  ReqService->>ReqRepo: findById(newId)
+  ReqRepo-->>ReqService: hydrated request
+  ReqService-->>ReqAPI: created request
+  ReqAPI-->>User: 201 Created

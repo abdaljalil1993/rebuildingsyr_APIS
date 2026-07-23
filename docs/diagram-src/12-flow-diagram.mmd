@@ -1,0 +1,17 @@
+flowchart TD
+  A[Reviewer calls GET /reviewer/requests] --> B[List assigned or all mode]
+  B --> C[Reviewer selects request]
+  C --> D{Action type}
+  D -->|Add note| E[POST /reviewer/requests/:id/note]
+  E --> F{Current status is PENDING?}
+  F -->|Yes| G[Auto move to UNDER_REVIEW]
+  F -->|No| H[Keep current status]
+
+  D -->|Update status| I[PATCH /reviewer/requests/:id/status]
+  I --> J{Status is REJECTED?}
+  J -->|Yes| K[Require rejectionReason]
+  J -->|No| L[Clear rejectionReason]
+  K --> M[Persist status transition]
+  L --> M
+  G --> M
+  H --> M

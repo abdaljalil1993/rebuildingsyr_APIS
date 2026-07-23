@@ -1,0 +1,14 @@
+flowchart TD
+  A[Admin authenticated with ADMIN role] --> B{Operation family}
+  B -->|Users| C[CRUD /admin/users]
+  B -->|Services| D[CRUD /admin/services]
+  B -->|Service Fields| E[CRUD /admin/service-fields]
+  B -->|Requests| F[GET /admin/requests and PATCH status]
+  B -->|Help Offers| G["/admin/help-offers list and status update"]
+  B -->|Analytics| H[GET /admin/statistics]
+
+  F --> I[Load request by id]
+  I --> J[Persist admin status override]
+
+  G --> K[Load help offer by id]
+  K --> L[Set followedByAdminId and status]

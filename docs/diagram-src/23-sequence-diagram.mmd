@@ -1,0 +1,13 @@
+sequenceDiagram
+  actor Admin
+  participant AdminAPI as Admin Controller
+  participant AdminService
+  participant ReqRepo
+
+  Admin->>AdminAPI: PATCH /admin/requests/:id/status
+  AdminAPI->>AdminService: updateRequestStatus(requestId, payload)
+  AdminService->>ReqRepo: findById(requestId)
+  ReqRepo-->>AdminService: request entity
+  AdminService->>ReqRepo: save(status, rejectionReason)
+  AdminService-->>AdminAPI: updated request
+  AdminAPI-->>Admin: 200 OK

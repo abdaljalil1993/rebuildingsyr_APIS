@@ -251,14 +251,9 @@ flowchart TD
     F -->|Map to DTOs| G["PublicRequestResponse<br/>with Contact Info"]
     G -->|Pagination Meta| H["Return 200 OK<br/>+ data array<br/>+ page, limit, total"]
     H -->|JSON Response| A
-    
-    rect rgb(200, 255, 200)
-    note right of F: Data Exposed:<br/>- name, phone, email<br/>- city, service details<br/>- request data, media
-    end
-    
-    rect rgb(255, 200, 200)
-    note right of F: Data Hidden:<br/>- passwords<br/>- rejection reasons<br/>- internal notes
-    end
+
+    F --> X["Exposed Data<br/>name, phone, email,<br/>city, service, media"]
+    F --> Y["Hidden Data<br/>passwords,<br/>internal-only fields"]
 ```
 
 ## 5.5 Concurrent Request Handling
@@ -294,9 +289,10 @@ graph LR
     W1 -->|Serializable| DB[(Database)]
     R1 -->|Read-Only<br/>Consistent| DB
     W2 -->|Serializable| DB
-    
-    note over Processing: Node.js Event Loop<br/>Handles multiple<br/>requests simultaneously
-    note over Database: MySQL Connection Pool<br/>Manages concurrent<br/>transactions safely
+
+    N1["Node.js Event Loop<br/>handles concurrent requests"] -.-> Processing
+    N2["MySQL Connection Pool<br/>coordinates concurrent read/write"] -.-> Database
+```
 
 ## 6. Sequence Flow (Step-by-Step)
 
@@ -325,6 +321,364 @@ graph LR
 1. Reviewer sets request status to `NEEDS_INFO`.
 2. User updates request via `/requests/:id`.
 3. API resets status to `PENDING` for re-review.
+
+## 6.1 Extended Process Diagrams (Flow + State + Sequence)
+
+This section adds process-level diagrams for the major workflows in the platform.
+
+### 6.1.1 Authentication Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Client sends register or login request] --> B{Endpoint}
+  B -->|POST /auth/register| C[Validate RegisterDto]
+  C --> D{Email already exists?}
+  D -->|Yes| E[409 Conflict]
+  D -->|No| F[Hash password and create USER]
+  F --> G[Persist user and return safe profile]
+
+  B -->|POST /auth/login| H[Validate LoginDto]
+  H --> I[Find user by email]
+  I --> J{Password matches?}
+  J -->|No| K[401 Unauthorized]
+  J -->|Yes| L[Issue JWT]
+  L --> M[Return token + user summary]
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Unauthenticated
+  Unauthenticated --> Registering: POST /auth/register
+  Registering --> Unauthenticated: Registration success
+  Unauthenticated --> Authenticating: POST /auth/login
+  Authenticating --> Authenticated: JWT issued
+  Authenticating --> Unauthenticated: Invalid credentials
+  Authenticated --> TokenExpired: JWT expires
+  TokenExpired --> Authenticating: Re-login
+  Authenticated --> LoggedOut: Client discards token
+  LoggedOut --> Unauthenticated
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant AuthAPI as Auth Controller
+  participant AuthService
+  participant UserRepo
+  participant JWT as JWT Utility
+
+  Client->>AuthAPI: POST /auth/login (email, password)
+  AuthAPI->>AuthService: login(payload)
+  AuthService->>UserRepo: findByEmail(email)
+  UserRepo-->>AuthService: user or null
+  AuthService->>AuthService: compare password hash
+  AuthService->>JWT: sign({ id, role })
+  JWT-->>AuthService: access token
+  AuthService-->>AuthAPI: token + safe user
+  AuthAPI-->>Client: 200 OK
+```
+
+### 6.1.2 Request Creation and Lifecycle Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[USER sends POST /requests] --> B[Validate CreateRequestDto]
+  B --> C[Load service + service fields]
+  C --> D[Validate allowed field ids]
+  D --> E[Validate required fields]
+  E --> F[Create request with status PENDING]
+  F --> G[Insert request_data rows]
+  G --> H{Media provided?}
+  H -->|Yes| I[Insert media rows]
+  H -->|No| J[Skip media insert]
+  I --> K[Load hydrated request and return]
+  J --> K
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING: User creates request
+  PENDING --> UNDER_REVIEW: Reviewer adds note / starts review
+  PENDING --> NEEDS_INFO: Reviewer asks for more info
+  PENDING --> APPROVED: Reviewer/Admin approves
+  PENDING --> REJECTED: Reviewer/Admin rejects
+  UNDER_REVIEW --> NEEDS_INFO
+  UNDER_REVIEW --> APPROVED
+  UNDER_REVIEW --> REJECTED
+  NEEDS_INFO --> PENDING: User updates request
+  APPROVED --> [*]
+  REJECTED --> [*]
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor User
+  participant ReqAPI as Request Controller
+  participant ReqService
+  participant ServiceRepo
+  participant FieldRepo
+  participant ReqRepo
+  participant DataRepo
+  participant MediaRepo
+
+  User->>ReqAPI: POST /requests
+  ReqAPI->>ReqService: createRequest(userId, dto)
+  ReqService->>ServiceRepo: findById(serviceId)
+  ReqService->>FieldRepo: findByServiceId(serviceId)
+  ReqService->>ReqService: validate required + allowed fields
+  ReqService->>ReqRepo: save(request: PENDING)
+  ReqService->>DataRepo: saveMany(request_data)
+  ReqService->>MediaRepo: save(media) (optional)
+  ReqService->>ReqRepo: findById(newId)
+  ReqRepo-->>ReqService: hydrated request
+  ReqService-->>ReqAPI: created request
+  ReqAPI-->>User: 201 Created
+```
+
+### 6.1.3 Reviewer Moderation Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Reviewer calls GET /reviewer/requests] --> B[List assigned or all mode]
+  B --> C[Reviewer selects request]
+  C --> D{Action type}
+  D -->|Add note| E[POST /reviewer/requests/:id/note]
+  E --> F{Current status is PENDING?}
+  F -->|Yes| G[Auto move to UNDER_REVIEW]
+  F -->|No| H[Keep current status]
+
+  D -->|Update status| I[PATCH /reviewer/requests/:id/status]
+  I --> J{Status is REJECTED?}
+  J -->|Yes| K[Require rejectionReason]
+  J -->|No| L[Clear rejectionReason]
+  K --> M[Persist status transition]
+  L --> M
+  G --> M
+  H --> M
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Assigned: First reviewer touches request
+  Assigned --> UNDER_REVIEW: Add note on PENDING
+  Assigned --> NEEDS_INFO: Reviewer status update
+  Assigned --> APPROVED: Reviewer status update
+  Assigned --> REJECTED: Reviewer status update + reason
+  UNDER_REVIEW --> NEEDS_INFO
+  UNDER_REVIEW --> APPROVED
+  UNDER_REVIEW --> REJECTED
+  NEEDS_INFO --> Assigned: User resubmits update
+  APPROVED --> [*]
+  REJECTED --> [*]
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Reviewer
+  participant RevAPI as Reviewer Controller
+  participant RevService
+  participant ReqRepo
+  participant NoteRepo
+
+  Reviewer->>RevAPI: POST /reviewer/requests/:id/note
+  RevAPI->>RevService: addNote(reviewerId, requestId, note)
+  RevService->>ReqRepo: findById(requestId)
+  RevService->>NoteRepo: save(note)
+  RevService->>ReqRepo: save(status=UNDER_REVIEW if PENDING)
+  RevService-->>RevAPI: note saved
+  RevAPI-->>Reviewer: 201 Created
+
+  Reviewer->>RevAPI: PATCH /reviewer/requests/:id/status
+  RevAPI->>RevService: updateRequestStatus(...)
+  RevService->>ReqRepo: save(new status, rejectionReason rules)
+  RevAPI-->>Reviewer: 200 OK
+```
+
+### 6.1.4 Public Discovery Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Public client sends GET /requests/public] --> B[Validate query params]
+  B --> C[Force filter status=APPROVED]
+  C --> D[Query repository with pagination]
+  D --> E[Sanitize response fields]
+  E --> F[Return contact-enabled approved requests]
+
+  G[Public client sends GET /requests/public/:id] --> H[Load request by id]
+  H --> I{Status APPROVED?}
+  I -->|Yes| J[Return sanitized request details]
+  I -->|No| K[403 Not available for public view]
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Hidden
+  Hidden --> VisiblePublic: Request status becomes APPROVED
+  VisiblePublic --> Hidden: Request moves away from APPROVED
+  VisiblePublic --> VisiblePublic: Public list/detail read operations
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Public
+  participant ReqAPI as Request Controller
+  participant ReqService
+  participant ReqRepo
+
+  Public->>ReqAPI: GET /requests/public?city=Gaza
+  ReqAPI->>ReqService: listPublicRequests(query)
+  ReqService->>ReqRepo: findAllPaginated(status=APPROVED,...)
+  ReqRepo-->>ReqService: approved items
+  ReqService->>ReqService: sanitizePublicRequest(items)
+  ReqService-->>ReqAPI: data + pagination
+  ReqAPI-->>Public: 200 OK
+```
+
+### 6.1.5 Help Offer Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Helper sends POST /help-offers] --> B[Load target request]
+  B --> C{Request status is APPROVED?}
+  C -->|No| D[400 only approved requests]
+  C -->|Yes| E{Helper is request owner?}
+  E -->|Yes| F[400 cannot help own request]
+  E -->|No| G{Active offer already exists?}
+  G -->|Yes| H[409 duplicate active offer]
+  G -->|No| I[Create offer with status NEW]
+  I --> J[Return hydrated help offer]
+
+  K[Helper sends PATCH /help-offers/my/:id/cancel] --> L{Status final?}
+  L -->|COMPLETED or REJECTED| M[400 cannot cancel]
+  L -->|Other active statuses| N[Set status CANCELED]
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> NEW: Helper creates offer
+  NEW --> CONTACTED: Admin follows up
+  CONTACTED --> IN_PROGRESS: Coordination started
+  IN_PROGRESS --> COMPLETED: Help delivered
+  NEW --> REJECTED: Admin decision
+  CONTACTED --> REJECTED: Admin decision
+  IN_PROGRESS --> REJECTED: Admin decision
+  NEW --> CANCELED: Helper cancels
+  CONTACTED --> CANCELED: Helper cancels
+  IN_PROGRESS --> CANCELED: Helper cancels
+  COMPLETED --> [*]
+  REJECTED --> [*]
+  CANCELED --> [*]
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Helper
+  participant OfferAPI as HelpOffer Controller
+  participant OfferService
+  participant ReqRepo
+  participant OfferRepo
+
+  Helper->>OfferAPI: POST /help-offers
+  OfferAPI->>OfferService: createHelpOffer(helperId, dto)
+  OfferService->>ReqRepo: findById(requestId)
+  OfferService->>OfferRepo: hasActiveOfferForRequest(helperId, requestId)
+  OfferService->>OfferRepo: save(status=NEW)
+  OfferService->>OfferRepo: findById(newOfferId)
+  OfferAPI-->>Helper: 201 Created
+
+  Helper->>OfferAPI: PATCH /help-offers/my/:id/cancel
+  OfferAPI->>OfferService: cancelMyHelpOffer(...)
+  OfferService->>OfferRepo: save(status=CANCELED, reason)
+  OfferAPI-->>Helper: 200 OK
+```
+
+### 6.1.6 Admin Governance Process
+
+#### Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Admin authenticated with ADMIN role] --> B{Operation family}
+  B -->|Users| C[CRUD /admin/users]
+  B -->|Services| D[CRUD /admin/services]
+  B -->|Service Fields| E[CRUD /admin/service-fields]
+  B -->|Requests| F[GET /admin/requests and PATCH status]
+  B -->|Help Offers| G["/admin/help-offers list and status update"]
+  B -->|Analytics| H[GET /admin/statistics]
+
+  F --> I[Load request by id]
+  I --> J[Persist admin status override]
+
+  G --> K[Load help offer by id]
+  K --> L[Set followedByAdminId and status]
+```
+
+#### State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> ManagingUsers
+  Idle --> ManagingServices
+  Idle --> ManagingServiceFields
+  Idle --> ManagingRequests
+  Idle --> ManagingHelpOffers
+  Idle --> ViewingStatistics
+  ManagingUsers --> Idle
+  ManagingServices --> Idle
+  ManagingServiceFields --> Idle
+  ManagingRequests --> Idle
+  ManagingHelpOffers --> Idle
+  ViewingStatistics --> Idle
+```
+
+#### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Admin
+  participant AdminAPI as Admin Controller
+  participant AdminService
+  participant ReqRepo
+
+  Admin->>AdminAPI: PATCH /admin/requests/:id/status
+  AdminAPI->>AdminService: updateRequestStatus(requestId, payload)
+  AdminService->>ReqRepo: findById(requestId)
+  ReqRepo-->>AdminService: request entity
+  AdminService->>ReqRepo: save(status, rejectionReason)
+  AdminService-->>AdminAPI: updated request
+  AdminAPI-->>Admin: 200 OK
+```
 
 ## 7. API Documentation
 
@@ -514,6 +868,48 @@ The system includes a public-facing API that allows anyone (without authenticati
 - Admin can reject requests if sensitive information is detected
 - Contact information is shown only for approved requests
 - Submitter information is complete for transparency with donors
+
+## 11. Export Diagrams as Images (PNG/SVG)
+
+You can export all Mermaid diagrams in this document as image files.
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Extract all Mermaid blocks from this file automatically:
+
+```bash
+npm run diagrams:extract
+```
+
+This generates `.mmd` source files under `docs/diagram-src`.
+
+3. Export all diagrams to PNG:
+
+```bash
+npm run diagrams:export:png
+```
+
+4. Export all diagrams to SVG:
+
+```bash
+npm run diagrams:export:svg
+```
+
+5. Optional PowerShell manual loop (only if you want direct control):
+
+```powershell
+New-Item -ItemType Directory -Force docs/diagram-images | Out-Null
+Get-ChildItem docs/diagram-src -Filter *.mmd | ForEach-Object {
+  $outFile = Join-Path "docs/diagram-images" ($_.BaseName + ".png")
+  npx mmdc -i $_.FullName -o $outFile
+}
+```
+
+This gives you ready-to-use images for presentations, reports, or external documents.
 
 ## Appendix - Development Notes
 

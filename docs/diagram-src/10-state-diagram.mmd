@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> PENDING: User creates request
+  PENDING --> UNDER_REVIEW: Reviewer adds note / starts review
+  PENDING --> NEEDS_INFO: Reviewer asks for more info
+  PENDING --> APPROVED: Reviewer/Admin approves
+  PENDING --> REJECTED: Reviewer/Admin rejects
+  UNDER_REVIEW --> NEEDS_INFO
+  UNDER_REVIEW --> APPROVED
+  UNDER_REVIEW --> REJECTED
+  NEEDS_INFO --> PENDING: User updates request
+  APPROVED --> [*]
+  REJECTED --> [*]

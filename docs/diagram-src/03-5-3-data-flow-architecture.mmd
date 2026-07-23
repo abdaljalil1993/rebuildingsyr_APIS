@@ -1,0 +1,55 @@
+graph LR
+    subgraph Client["Client Layer"]
+        PublicUI["Public Interface<br/>(No Login Required)"]
+        UserUI["User Dashboard<br/>(Authenticated)"]
+        ReviewerUI["Reviewer Panel<br/>(Authenticated)"]
+        AdminUI["Admin Panel<br/>(Authenticated)"]
+    end
+    
+    subgraph API["API Layer"]
+        PublicAPI["🔓 Public APIs<br/>/requests/public"]
+        UserAPI["🔐 User APIs<br/>/requests"]
+        ReviewerAPI["🔐 Reviewer APIs<br/>/reviewer/requests"]
+        AdminAPI["🔐 Admin APIs<br/>/admin"]
+    end
+    
+    subgraph Service["Service Layer"]
+        PublicService["RequestService<br/>listPublicRequests<br/>getPublicRequestById"]
+        UserService["RequestService<br/>createRequest<br/>updateRequest"]
+        ReviewerService["RequestService<br/>updateStatus<br/>addNote"]
+        AdminService["AdminService<br/>CRUD Operations"]
+    end
+    
+    subgraph Data["Data Layer"]
+        RequestRepo["RequestRepository<br/>findAllPaginated<br/>findById"]
+        UserRepo["UserRepository"]
+        Validation["DTOs & Validation<br/>PublicRequestsQueryDto"]
+    end
+    
+    subgraph DB["Database"]
+        Requests["requests table<br/>status=APPROVED"]
+        Users["users table"]
+        Services["services table"]
+    end
+    
+    PublicUI -->|No Auth| PublicAPI
+    UserUI -->|JWT Token| UserAPI
+    ReviewerUI -->|JWT Token| ReviewerAPI
+    AdminUI -->|JWT Token| AdminAPI
+    
+    PublicAPI --> PublicService
+    UserAPI --> UserService
+    ReviewerAPI --> ReviewerService
+    AdminAPI --> AdminService
+    
+    PublicService --> RequestRepo
+    UserService --> RequestRepo
+    ReviewerService --> RequestRepo
+    AdminService --> RequestRepo
+    
+    RequestRepo --> Validation
+    Validation --> DB
+    
+    RequestRepo --> Requests
+    UserRepo --> Users
+    RequestRepo --> Services

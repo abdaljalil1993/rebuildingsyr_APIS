@@ -1,0 +1,14 @@
+stateDiagram-v2
+  [*] --> NEW: Helper creates offer
+  NEW --> CONTACTED: Admin follows up
+  CONTACTED --> IN_PROGRESS: Coordination started
+  IN_PROGRESS --> COMPLETED: Help delivered
+  NEW --> REJECTED: Admin decision
+  CONTACTED --> REJECTED: Admin decision
+  IN_PROGRESS --> REJECTED: Admin decision
+  NEW --> CANCELED: Helper cancels
+  CONTACTED --> CANCELED: Helper cancels
+  IN_PROGRESS --> CANCELED: Helper cancels
+  COMPLETED --> [*]
+  REJECTED --> [*]
+  CANCELED --> [*]

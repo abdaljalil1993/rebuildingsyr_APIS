@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor Public as 🌐 Public User
+    participant API as API Server
+    participant DB as Database
+    participant Cache as Response
+    
+    Public->>API: GET /requests/public?city=Gaza
+    API->>DB: Query APPROVED requests<br/>WHERE status='APPROVED'<br/>AND user.city='Gaza'
+    DB-->>API: Return approved requests
+    API->>API: Sanitize data<br/>(hide sensitive info)
+    API-->>Public: JSON with contacts<br/>+ pagination
+    
+    rect rgb(200, 150, 255)
+    note right of API: Concurrent Requests Handled<br/>Same request from multiple<br/>users served simultaneously
+    actor Public2 as 🌐 Public User 2
+    Public2->>API: GET /requests/public/:id
+    API->>DB: Fetch single request<br/>status=APPROVED
+    DB-->>API: Request details
+    API-->>Public2: Approved request detail
+    end
+    
+    rect rgb(150, 200, 255)
+    note right of API: User Submitting<br/>While Public Viewing
+    actor User as 👤 User
+    User->>API: POST /requests (with JWT)
+    API->>DB: Create request<br/>status=PENDING
+    DB-->>API: Request created
+    API-->>User: Request ID 123
+    
+    note over API: This new request is NOT<br/>visible in /requests/public<br/>until status = APPROVED
+    Public->>API: GET /requests/public<br/>(still sees only APPROVED)
+    end

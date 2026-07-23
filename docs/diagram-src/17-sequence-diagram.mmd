@@ -1,0 +1,13 @@
+sequenceDiagram
+  actor Public
+  participant ReqAPI as Request Controller
+  participant ReqService
+  participant ReqRepo
+
+  Public->>ReqAPI: GET /requests/public?city=Gaza
+  ReqAPI->>ReqService: listPublicRequests(query)
+  ReqService->>ReqRepo: findAllPaginated(status=APPROVED,...)
+  ReqRepo-->>ReqService: approved items
+  ReqService->>ReqService: sanitizePublicRequest(items)
+  ReqService-->>ReqAPI: data + pagination
+  ReqAPI-->>Public: 200 OK

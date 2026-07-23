@@ -1,0 +1,33 @@
+graph LR
+    subgraph Users["Multiple Users (Concurrent)"]
+        U1["👤 User A<br/>Creating Request"]
+        U2["🌐 Public User B<br/>Browsing Requests"]
+        U3["👮 Reviewer C<br/>Approving Request"]
+    end
+    
+    subgraph Processing["Request Processing"]
+        P1["POST /requests<br/>User A"]
+        P2["GET /requests/public<br/>Public B"]
+        P3["PATCH /reviewer/requests/:id<br/>Reviewer C"]
+    end
+    
+    subgraph Database["Database Layer<br/>Connection Pool"]
+        W1["Write Transaction<br/>INSERT request"]
+        R1["Read Query<br/>SELECT APPROVED"]
+        W2["Update Transaction<br/>UPDATE status"]
+    end
+    
+    U1 -->|Async| P1
+    U2 -->|Async| P2
+    U3 -->|Async| P3
+    
+    P1 -->|Queue| W1
+    P2 -->|Query| R1
+    P3 -->|Queue| W2
+    
+    W1 -->|Serializable| DB[(Database)]
+    R1 -->|Read-Only<br/>Consistent| DB
+    W2 -->|Serializable| DB
+
+    N1["Node.js Event Loop<br/>handles concurrent requests"] -.-> Processing
+    N2["MySQL Connection Pool<br/>coordinates concurrent read/write"] -.-> Database

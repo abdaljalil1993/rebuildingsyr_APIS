@@ -1,0 +1,14 @@
+flowchart TD
+  A[Helper sends POST /help-offers] --> B[Load target request]
+  B --> C{Request status is APPROVED?}
+  C -->|No| D[400 only approved requests]
+  C -->|Yes| E{Helper is request owner?}
+  E -->|Yes| F[400 cannot help own request]
+  E -->|No| G{Active offer already exists?}
+  G -->|Yes| H[409 duplicate active offer]
+  G -->|No| I[Create offer with status NEW]
+  I --> J[Return hydrated help offer]
+
+  K[Helper sends PATCH /help-offers/my/:id/cancel] --> L{Status final?}
+  L -->|COMPLETED or REJECTED| M[400 cannot cancel]
+  L -->|Other active statuses| N[Set status CANCELED]

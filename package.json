@@ -6,7 +6,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "diagrams:extract": "node scripts/extract-mermaid.js PROJECT_DOCUMENTATION.md docs/diagram-src",
+    "diagrams:export:png": "npm run diagrams:extract && node scripts/export-mermaid.js docs/diagram-src docs/diagram-images png",
+    "diagrams:export:svg": "npm run diagrams:extract && node scripts/export-mermaid.js docs/diagram-src docs/diagram-images svg"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +31,7 @@
     "typeorm": "^0.3.28"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.10.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

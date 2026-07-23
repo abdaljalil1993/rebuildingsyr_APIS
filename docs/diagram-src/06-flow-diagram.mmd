@@ -1,0 +1,14 @@
+flowchart TD
+  A[Client sends register or login request] --> B{Endpoint}
+  B -->|POST /auth/register| C[Validate RegisterDto]
+  C --> D{Email already exists?}
+  D -->|Yes| E[409 Conflict]
+  D -->|No| F[Hash password and create USER]
+  F --> G[Persist user and return safe profile]
+
+  B -->|POST /auth/login| H[Validate LoginDto]
+  H --> I[Find user by email]
+  I --> J{Password matches?}
+  J -->|No| K[401 Unauthorized]
+  J -->|Yes| L[Issue JWT]
+  L --> M[Return token + user summary]

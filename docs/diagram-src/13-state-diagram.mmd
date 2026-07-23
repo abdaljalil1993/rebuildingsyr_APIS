@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> Assigned: First reviewer touches request
+  Assigned --> UNDER_REVIEW: Add note on PENDING
+  Assigned --> NEEDS_INFO: Reviewer status update
+  Assigned --> APPROVED: Reviewer status update
+  Assigned --> REJECTED: Reviewer status update + reason
+  UNDER_REVIEW --> NEEDS_INFO
+  UNDER_REVIEW --> APPROVED
+  UNDER_REVIEW --> REJECTED
+  NEEDS_INFO --> Assigned: User resubmits update
+  APPROVED --> [*]
+  REJECTED --> [*]

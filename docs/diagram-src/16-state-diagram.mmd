@@ -1,0 +1,5 @@
+stateDiagram-v2
+  [*] --> Hidden
+  Hidden --> VisiblePublic: Request status becomes APPROVED
+  VisiblePublic --> Hidden: Request moves away from APPROVED
+  VisiblePublic --> VisiblePublic: Public list/detail read operations

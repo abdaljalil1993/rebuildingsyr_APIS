@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor Helper
+  participant OfferAPI as HelpOffer Controller
+  participant OfferService
+  participant ReqRepo
+  participant OfferRepo
+
+  Helper->>OfferAPI: POST /help-offers
+  OfferAPI->>OfferService: createHelpOffer(helperId, dto)
+  OfferService->>ReqRepo: findById(requestId)
+  OfferService->>OfferRepo: hasActiveOfferForRequest(helperId, requestId)
+  OfferService->>OfferRepo: save(status=NEW)
+  OfferService->>OfferRepo: findById(newOfferId)
+  OfferAPI-->>Helper: 201 Created
+
+  Helper->>OfferAPI: PATCH /help-offers/my/:id/cancel
+  OfferAPI->>OfferService: cancelMyHelpOffer(...)
+  OfferService->>OfferRepo: save(status=CANCELED, reason)
+  OfferAPI-->>Helper: 200 OK

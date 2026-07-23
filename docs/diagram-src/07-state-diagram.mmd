@@ -1,0 +1,11 @@
+stateDiagram-v2
+  [*] --> Unauthenticated
+  Unauthenticated --> Registering: POST /auth/register
+  Registering --> Unauthenticated: Registration success
+  Unauthenticated --> Authenticating: POST /auth/login
+  Authenticating --> Authenticated: JWT issued
+  Authenticating --> Unauthenticated: Invalid credentials
+  Authenticated --> TokenExpired: JWT expires
+  TokenExpired --> Authenticating: Re-login
+  Authenticated --> LoggedOut: Client discards token
+  LoggedOut --> Unauthenticated

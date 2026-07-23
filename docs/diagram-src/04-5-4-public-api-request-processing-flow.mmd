@@ -1,0 +1,12 @@
+flowchart TD
+    A["🌐 Public User<br/>No Authentication<br/>No JWT Token"] -->|GET /requests/public| B["PublicAPI Layer"]
+    B -->|No Auth Check| C["Accept Request"]
+    C -->|Query Builder| D["RequestRepository<br/>findAllPaginated"]
+    D -->|WHERE status='APPROVED'| E["Database Query"]
+    E -->|Return Approved Rows| F["Sanitize Data<br/>Hide sensitive fields"]
+    F -->|Map to DTOs| G["PublicRequestResponse<br/>with Contact Info"]
+    G -->|Pagination Meta| H["Return 200 OK<br/>+ data array<br/>+ page, limit, total"]
+    H -->|JSON Response| A
+
+    F --> X["Exposed Data<br/>name, phone, email,<br/>city, service, media"]
+    F --> Y["Hidden Data<br/>passwords,<br/>internal-only fields"]
